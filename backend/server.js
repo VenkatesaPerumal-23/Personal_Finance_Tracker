@@ -34,4 +34,4 @@ app.delete('/api/transactions/:id', async (req, res) => {
   res.status(204).end();
 });
 
-app.listen(5000, () => console.log('Backend server running on http://localhost:5000'));
+app.listen(5000, () => console.log('Backend server running on https://personal-finance-tracker-egig.onrender.com'));
