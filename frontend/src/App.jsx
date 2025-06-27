@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,6 @@ import { Toaster, toast } from "sonner";
 import "../src/index.css";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { useRef } from "react";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AA336A", "#8800EE"];
 
@@ -33,16 +32,14 @@ function App() {
   const pdfRef = useRef();
 
   const handleDownloadPDF = () => {
-      const input = pdfRef.current;
-      html2canvas(input, { scale: 2 }).then((canvas) => {
+    const input = pdfRef.current;
+    html2canvas(input, { scale: 2 }).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-
       const imgWidth = 210;
       const pageHeight = 295;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
-
       let position = 0;
 
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
@@ -157,10 +154,9 @@ function App() {
   return (
     <>
       <Toaster richColors position="top-right" />
-      <div className="min-h-screen px-4 py-8 bg-white text-black dark:bg-gray-900 dark:text-white">
+      <div className="min-h-screen px-4 py-8 bg-white text-black">
         <div className="max-w-7xl mx-auto" ref={pdfRef}>
           <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            
             <h1 className="text-3xl font-bold">💸 Personal Finance Tracker</h1>
             <div className="flex flex-col sm:flex-row items-center gap-2">
               <select
@@ -175,18 +171,14 @@ function App() {
                 placeholder={`Search ${filterType}`}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className=""
               />
               <Button onClick={resetFilters} variant="outline">
                 Reset
               </Button>
-              
             </div>
-            
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Form & Transaction List */}
             <div className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-3">
                 <Input
@@ -194,20 +186,17 @@ function App() {
                   placeholder="Amount"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
-                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 />
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   placeholder="dd-mm-yyyy"
                 />
                 <Input
                   placeholder="Description"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 />
                 <Button type="submit" className="w-full">
                   {editingId ? "Update" : "Add"} Transaction
@@ -221,15 +210,11 @@ function App() {
                   {filteredTransactions.map((txn) => (
                     <li
                       key={txn._id}
-                      className="border rounded p-2 flex justify-between items-center dark:border-gray-700"
+                      className="border rounded p-2 flex justify-between items-center"
                     >
                       <div>
-                        <p>
-                          ₹{txn.amount} - {new Date(txn.date).toLocaleDateString()}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {txn.description}
-                        </p>
+                        <p>₹{txn.amount} - {new Date(txn.date).toLocaleDateString()}</p>
+                        <p className="text-sm text-gray-600">{txn.description}</p>
                       </div>
                       <div className="space-x-2">
                         <Button variant="outline" onClick={() => handleEdit(txn)}>
@@ -245,19 +230,17 @@ function App() {
               </div>
             </div>
 
-            {/* Bar Chart */}
-            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6">
+            <div className="w-full bg-gray-200 rounded p-6">
               <h2 className="font-semibold text-xl text-center mb-4">📊 Monthly Spending Overview</h2>
               <BarChart width={300} height={300} data={monthlyData}>
-                <XAxis dataKey="month" stroke={isDark ? "#fff" : "#333"} />
-                <YAxis stroke={isDark ? "#fff" : "#333"} />
+                <XAxis dataKey="month" />
+                <YAxis />
                 <Tooltip />
                 <Bar dataKey="amount" fill="#03a200" />
               </BarChart>
             </div>
 
-            {/* Pie Chart */}
-            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6">
+            <div className="w-full bg-gray-200 rounded p-6">
               <h2 className="font-semibold text-xl text-center mb-4">🥧 Spending by Category</h2>
               <PieChart width={300} height={300}>
                 <Pie
@@ -278,19 +261,18 @@ function App() {
               </PieChart>
             </div>
 
-            {/* Line Chart */}
-            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6 md:col-span-2 lg:col-span-3">
+            <div className="w-full bg-gray-200 rounded p-6 md:col-span-2 lg:col-span-3">
               <h2 className="font-semibold text-xl text-center mb-4">📈 Cumulative Spending Over Time</h2>
               <LineChart width={800} height={300} data={cumulativeData}>
-                <XAxis dataKey="date" stroke={isDark ? "#fff" : "#333"} />
-                <YAxis stroke={isDark ? "#fff" : "#333"} />
+                <XAxis dataKey="date" />
+                <YAxis />
                 <Tooltip />
                 <Line type="monotone" dataKey="amount" stroke="#8884d8" />
               </LineChart>
             </div>
           </div>
         </div>
-        <Button className="mt-4" onClick={handleDownloadPDF} variant="default"> Download PDF </Button> 
+        <Button className="mt-4" onClick={handleDownloadPDF} variant="default">Download PDF</Button>
       </div>
     </>
   );
