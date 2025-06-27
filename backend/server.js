@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect('mongodb+srv://venkatesaperumal:7305723573@cluster0.6jcnhtc.mongodb.net/financeDB?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb+srv://venkatesaperumal:7305723573@cluster0.6jcnhtc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('MongoDB connected'))
