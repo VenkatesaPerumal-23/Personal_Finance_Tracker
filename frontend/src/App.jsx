@@ -61,7 +61,7 @@ function App() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/transactions");
+      const res = await axios.get("https://personal-finance-tracker-egig.onrender.com/api/transactions");
       setTransactions(res.data);
     } catch (err) {
       toast.error("Error fetching transactions");
@@ -78,11 +78,11 @@ function App() {
 
     try {
       if (editingId) {
-        await axios.put(`http://localhost:5000/api/transactions/${editingId}`, form);
+        await axios.put(`https://personal-finance-tracker-egig.onrender.com/api/transactions/${editingId}`, form);
         toast.success("Transaction updated!");
         setEditingId(null);
       } else {
-        await axios.post("http://localhost:5000/api/transactions", form);
+        await axios.post("https://personal-finance-tracker-egig.onrender.com/api/transactions", form);
         toast.success("Transaction added!");
       }
 
@@ -104,7 +104,7 @@ function App() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/transactions/${id}`);
+      await axios.delete(`https://personal-finance-tracker-egig.onrender.com/api/transactions/${id}`);
       toast.success("Transaction deleted.");
       fetchTransactions();
     } catch (err) {
