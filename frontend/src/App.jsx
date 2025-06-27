@@ -24,11 +24,10 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AA336A", "#8800EE"
 
 function App() {
   const [transactions, setTransactions] = useState([]);
-  const [form, setForm] = useState({ amount: "", date: "", description: "" });
+  const [form, setForm] = useState({ amount: "", date: "", description: "", category: "" });
   const [editingId, setEditingId] = useState(null);
   const [filterType, setFilterType] = useState("amount");
   const [search, setSearch] = useState(""); 
-
   const pdfRef = useRef();
 
   const handleDownloadPDF = () => {
@@ -71,7 +70,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.amount || !form.date || !form.description) return;
+    if (!form.amount || !form.date || !form.description || !form.category) return;
 
     try {
       if (editingId) {
@@ -83,7 +82,7 @@ function App() {
         toast.success("Transaction added!");
       }
 
-      setForm({ amount: "", date: "", description: "" });
+      setForm({ amount: "", date: "", description: "", category: "" });
       fetchTransactions();
     } catch (err) {
       toast.error("Error saving transaction.");
@@ -95,6 +94,7 @@ function App() {
       amount: txn.amount,
       date: txn.date.slice(0, 10),
       description: txn.description,
+      category: txn.category,
     });
     setEditingId(txn._id);
   };
@@ -135,9 +135,9 @@ function App() {
 
   const pieData = Object.values(
     filteredTransactions.reduce((acc, txn) => {
-      const desc = txn.description || "Other";
-      acc[desc] = acc[desc] || { name: desc, value: 0 };
-      acc[desc].value += txn.amount;
+      const cat = txn.category || "Other";
+      acc[cat] = acc[cat] || { name: cat, value: 0 };
+      acc[cat].value += txn.amount;
       return acc;
     }, {})
   );
@@ -186,18 +186,35 @@ function App() {
                   placeholder="Amount"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) })}
+                  required
                 />
                 <Input
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   placeholder="dd-mm-yyyy"
+                  required
                 />
                 <Input
                   placeholder="Description"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="border rounded px-2 py-2 w-full bg-white"
+                  required
+                  
+                >
+                  <option value="">Select Category</option>
+                  <option value="Food">Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Education">Education</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Electronics">Electronics</option>
+                  <option value="Healthcare">Healthcare</option>
+                </select>
                 <Button type="submit" className="w-full">
                   {editingId ? "Update" : "Add"} Transaction
                 </Button>
@@ -214,7 +231,7 @@ function App() {
                     >
                       <div>
                         <p>₹{txn.amount} - {new Date(txn.date).toLocaleDateString()}</p>
-                        <p className="text-sm text-gray-600">{txn.description}</p>
+                        <p className="text-sm text-gray-600">{txn.description} - ({txn.category})</p>
                       </div>
                       <div className="space-x-2">
                         <Button variant="outline" onClick={() => handleEdit(txn)}>
@@ -249,7 +266,7 @@ function App() {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={70}
                   label
                 >
                   {pieData.map((entry, index) => (
