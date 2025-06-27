@@ -10,10 +10,16 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  LineChart,
+  Line,
 } from "recharts";
 import axios from "axios";
 import { Toaster, toast } from "sonner";
+import "../src/index.css";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useRef } from "react";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#AA336A", "#8800EE"];
 
@@ -21,7 +27,37 @@ function App() {
   const [transactions, setTransactions] = useState([]);
   const [form, setForm] = useState({ amount: "", date: "", description: "" });
   const [editingId, setEditingId] = useState(null);
-  const [isDark, setIsDark] = useState(false);
+  const [filterType, setFilterType] = useState("amount");
+  const [search, setSearch] = useState(""); 
+
+  const pdfRef = useRef();
+
+  const handleDownloadPDF = () => {
+      const input = pdfRef.current;
+      html2canvas(input, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const imgWidth = 210;
+      const pageHeight = 295;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("transactions.pdf");
+    });
+  };
 
   const fetchTransactions = async () => {
     try {
@@ -76,8 +112,23 @@ function App() {
     }
   };
 
+  const resetFilters = () => {
+    setFilterType("amount");
+    setSearch("");
+  };
+
+  const filteredTransactions = transactions.filter((txn) => {
+    const value = search.toLowerCase();
+    if (filterType === "amount") {
+      return txn.amount.toString().includes(value);
+    } else if (filterType === "date") {
+      return txn.date.toLowerCase().includes(value);
+    }
+    return true;
+  });
+
   const monthlyData = Object.values(
-    transactions.reduce((acc, txn) => {
+    filteredTransactions.reduce((acc, txn) => {
       const month = new Date(txn.date).toLocaleString("default", { month: "short" });
       acc[month] = acc[month] || { month, amount: 0 };
       acc[month].amount += txn.amount;
@@ -86,7 +137,7 @@ function App() {
   );
 
   const pieData = Object.values(
-    transactions.reduce((acc, txn) => {
+    filteredTransactions.reduce((acc, txn) => {
       const desc = txn.description || "Other";
       acc[desc] = acc[desc] || { name: desc, value: 0 };
       acc[desc].value += txn.amount;
@@ -94,30 +145,49 @@ function App() {
     }, {})
   );
 
-  const toggleTheme = () => {
-    document.documentElement.classList.toggle("dark");
-    setIsDark((prev) => !prev);
-  };
+  const cumulativeData = filteredTransactions
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .reduce((acc, txn) => {
+      const prev = acc.length > 0 ? acc[acc.length - 1].amount : 0;
+      acc.push({ date: txn.date.slice(0, 10), amount: prev + txn.amount });
+      return acc;
+    }, []);
 
   return (
     <>
       <Toaster richColors position="top-right" />
-      <div className="min-h-screen p-4 bg-white text-black dark:bg-gray-900 dark:text-white">
-        <div className="max-w-7xl mx-auto relative">
-          <Button
-            onClick={toggleTheme}
-            className="absolute top-2 right-2"
-            variant="outline"
-          >
-            {isDark ? "Light Mode" : "Dark Mode"}
-          </Button>
-          <br />
-          <br />
-          <h1 className="text-3xl font-bold mb-6 text-center">💸 Personal Finance Tracker</h1>
+      <div className="min-h-screen px-4 py-8 bg-white text-black dark:bg-gray-900 dark:text-white">
+        <div className="max-w-7xl mx-auto" ref={pdfRef}>
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            
+            <h1 className="text-3xl font-bold">💸 Personal Finance Tracker</h1>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="border rounded px-2 py-1 bg-white"
+              >
+                <option value="amount">Filter by Amount</option>
+                <option value="date">Filter by Date</option>
+              </select>
+              <Input
+                placeholder={`Search ${filterType}`}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className=""
+              />
+              <Button onClick={resetFilters} variant="outline">
+                Reset
+              </Button>
+              
+            </div>
+            
+          </div>
 
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-            {/* Left Column: Form + Transaction List */}
-            <div className="w-full lg:w-1/3 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Form & Transaction List */}
+            <div className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-3">
                 <Input
                   type="number"
@@ -131,6 +201,7 @@ function App() {
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   className="dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  placeholder="dd-mm-yyyy"
                 />
                 <Input
                   placeholder="Description"
@@ -145,9 +216,9 @@ function App() {
 
               <div>
                 <h2 className="font-semibold text-xl mb-2">📋 Transaction List</h2>
-                {transactions.length === 0 && <p>No transactions found.</p>}
-                <ul className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {transactions.map((txn) => (
+                {filteredTransactions.length === 0 && <p>No transactions found.</p>}
+                <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                  {filteredTransactions.map((txn) => (
                     <li
                       key={txn._id}
                       className="border rounded p-2 flex justify-between items-center dark:border-gray-700"
@@ -174,25 +245,19 @@ function App() {
               </div>
             </div>
 
-            {/* Middle Column: Bar Chart */}
-            <div className="w-full lg:w-1/3 bg-gray-200 dark:bg-gray-800 rounded p-8">
+            {/* Bar Chart */}
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6">
               <h2 className="font-semibold text-xl text-center mb-4">📊 Monthly Spending Overview</h2>
               <BarChart width={300} height={300} data={monthlyData}>
                 <XAxis dataKey="month" stroke={isDark ? "#fff" : "#333"} />
                 <YAxis stroke={isDark ? "#fff" : "#333"} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#333" : "#fff",
-                    border: "none",
-                    color: isDark ? "#fff" : "#000",
-                  }}
-                />
+                <Tooltip />
                 <Bar dataKey="amount" fill="#03a200" />
               </BarChart>
             </div>
 
-            {/* Right Column: Pie Chart */}
-            <div className="w-full lg:w-1/3 bg-gray-200 dark:bg-gray-800 rounded p-8">
+            {/* Pie Chart */}
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6">
               <h2 className="font-semibold text-xl text-center mb-4">🥧 Spending by Category</h2>
               <PieChart width={300} height={300}>
                 <Pie
@@ -208,18 +273,24 @@ function App() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: isDark ? "#333" : "#fff",
-                    border: "none",
-                    color: isDark ? "#fff" : "#000",
-                  }}
-                />
+                <Tooltip />
                 <Legend />
               </PieChart>
             </div>
+
+            {/* Line Chart */}
+            <div className="w-full bg-gray-200 dark:bg-gray-800 rounded p-6 md:col-span-2 lg:col-span-3">
+              <h2 className="font-semibold text-xl text-center mb-4">📈 Cumulative Spending Over Time</h2>
+              <LineChart width={800} height={300} data={cumulativeData}>
+                <XAxis dataKey="date" stroke={isDark ? "#fff" : "#333"} />
+                <YAxis stroke={isDark ? "#fff" : "#333"} />
+                <Tooltip />
+                <Line type="monotone" dataKey="amount" stroke="#8884d8" />
+              </LineChart>
+            </div>
           </div>
         </div>
+        <Button className="mt-4" onClick={handleDownloadPDF} variant="default"> Download PDF </Button> 
       </div>
     </>
   );
