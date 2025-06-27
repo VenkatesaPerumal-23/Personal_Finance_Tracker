@@ -1,13 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Transaction = require('./models/transaction');
+const Transaction = require('./models/transactions');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect('mongodb+srv://venkatesaperumal:7305723573@cluster0.6jcnhtc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0', {
+mongoose.connect('mongodb+srv://Venkatesaperumal:siZyp0TIvmCCwSYR@cluster0.6jcnhtc.mongodb.net/financeDB?retryWrites=true&w=majority&appName=Cluster0', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => console.log('MongoDB connected'))
@@ -19,10 +19,22 @@ app.get('/api/transactions', async (req, res) => {
 });
 
 app.post('/api/transactions', async (req, res) => {
-  const transaction = new Transaction(req.body);
-  await transaction.save();
-  res.status(201).json(transaction);
+  try {
+    const { amount, date, description, category } = req.body;
+    if (!amount || !date || !description || !category) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const transaction = new Transaction({ amount, date, description, category });
+    await transaction.save();
+    console.log('Transaction saved:', transaction);
+    res.status(201).json(transaction);
+  } catch (err) {
+    console.error('Error saving transaction:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
 
 app.put('/api/transactions/:id', async (req, res) => {
   const updated = await Transaction.findByIdAndUpdate(req.params.id, req.body, { new: true });
